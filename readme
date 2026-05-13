@@ -1,0 +1,213 @@
+# Semantic Ticket Cache
+
+A semantic caching system for support workflows built with PostgreSQL, pgvector, SentenceTransformers, and Streamlit.
+
+The application allows support agents to search previously resolved cases using vector embeddings and cosine similarity. If no suitable cached response exists, agents can add a new validated Q/A pair into the cache database.
+
+---
+
+# Features
+
+- Semantic search using embeddings
+- Native PostgreSQL vector search with pgvector
+- Cosine similarity retrieval
+- Top-3 cached response retrieval
+- Streamlit UI
+- Incremental knowledge base growth
+- Dockerized PostgreSQL + pgvector setup
+- Persistent database storage using Docker volumes
+
+---
+
+# Example Workflow
+
+1. Support agent enters a customer/client issue
+
+Example:
+
+```text
+I can log into the portal, but document uploads fail with an unknown error.
+```
+
+2. The system:
+
+- generates an embedding for the query
+- searches PostgreSQL using pgvector cosine similarity
+- returns the top 3 most similar cached cases
+
+3. The support agent:
+
+- reuses one of the suggested responses
+- OR enters a new response and category
+
+4. The new Q/A pair is stored in the semantic cache for future retrieval.
+
+---
+
+# Tech Stack
+
+- Python
+- PostgreSQL
+- pgvector
+- SentenceTransformers
+- Streamlit
+- Docker Compose
+- psycopg2
+
+---
+
+# Project Structure
+
+```text
+semantic-cache/
+│
+├── app/
+│   ├── db.py
+│   └── embedder.py
+|
+├── baseline_python_search/
+|
+├── tests/
+│
+├── cache_actions.py
+├── insert_pgvector.py
+├── semantic_search_pgvector.py
+├── streamlit_app.py
+├── seed_cache.py
+│
+├── docker-compose.yml
+├── init.sql
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+---
+
+# Setup
+
+## 1. Clone repository
+
+```bash
+git clone <your-repo-url>
+cd semantic-cache
+```
+
+---
+
+## 2. Start PostgreSQL + pgvector
+
+```bash
+docker compose up -d
+```
+
+This creates:
+
+- PostgreSQL container
+- pgvector extension
+- semantic_cache_db database
+- qa_cache table
+
+---
+
+## 3. Create virtual environment
+
+### Windows
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+---
+
+## 4. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 5. Create `.env`
+
+Copy:
+
+```bash
+cp .env.example .env
+```
+
+```powershell
+copy .env.example .env
+```
+
+---
+
+## 6. (Optional) Seed sample cache entries
+
+```bash
+python seed_cache.py
+```
+
+---
+
+## 7. Run application
+
+```bash
+streamlit run streamlit_app.py
+```
+
+---
+
+# Database Schema
+
+```sql
+CREATE TABLE qa_cache (
+    id SERIAL PRIMARY KEY,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    category TEXT,
+    embedding VECTOR(384),
+    created_at TIMESTAMP DEFAULT NOW(),
+    hit_count INT DEFAULT 0
+);
+```
+
+---
+
+# How Semantic Search Works
+
+1. User query is converted into a vector embedding using SentenceTransformers
+2. Embedding is stored in PostgreSQL using pgvector
+3. Cosine similarity search retrieves semantically similar cached cases
+
+Query example:
+
+```sql
+SELECT
+    question,
+    answer,
+    1 - (embedding <=> %s::vector) AS similarity
+FROM qa_cache
+ORDER BY embedding <=> %s::vector
+LIMIT 3;
+```
+
+---
+
+# Future Improvements
+
+- Approximate nearest neighbor indexing (HNSW / IVFFlat)
+- Feedback-based ranking
+- Hybrid BM25 + vector search
+- Multi-user authentication
+- Admin analytics dashboard
+- Automatic ticket categorization
+- REST API backend
+- Redis caching layer
+
+---
+
+# License
+
+MIT License
